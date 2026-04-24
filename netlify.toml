@@ -4,7 +4,13 @@
   command = "npm run build"
 
 [build.environment]
-  VITE_API_URL = "http://72.60.251.63:8080/api"
+  VITE_API_URL = "/api"
+
+[[redirects]]
+  from = "/api/*"
+  to = "http://72.60.251.63:8080/api/:splat"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/*"
