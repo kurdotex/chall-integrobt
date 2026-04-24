@@ -36,13 +36,18 @@ jobs:
             
             if [ ! -f .env ]; then
               cp .env.example .env
+              # Inyectar puertos específicos para evitar conflictos en el VPS
+              sed -i 's/APP_PORT=80/APP_PORT=8080/g' .env || echo "APP_PORT=8080" >> .env
+              sed -i 's/FORWARD_DB_PORT=3306/FORWARD_DB_PORT=3307/g' .env || echo "FORWARD_DB_PORT=3307" >> .env
               sed -i 's/DB_PASSWORD=root/DB_PASSWORD=Lumberjack123/g' .env
             fi
             
+            # Forzar recreación con los nuevos puertos
+            docker compose down || true
             docker compose up -d --build
             
             # Esperar a que el contenedor esté listo
-            sleep 10
+            sleep 15
             
             docker exec backend-laravel.test-1 php artisan key:generate || true
             docker exec backend-laravel.test-1 php artisan migrate --seed
