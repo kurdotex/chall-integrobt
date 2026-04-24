@@ -34,7 +34,7 @@ jobs:
           script: |
             cd /var/www/html/chall-integrobt/backend
             
-            # Instalar dependencias
+            # Instalar dependencias para el contexto de build
             docker run --rm -v $(pwd):/app -w /app composer install --ignore-platform-reqs --no-scripts
             
             if [ ! -f .env ]; then
@@ -48,13 +48,15 @@ jobs:
             sed -i 's/^DB_USERNAME=.*/DB_USERNAME=root/' .env
             sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=Lumberjack123/' .env
             
-            # 2. CREAR DOCKER-COMPOSE.VPS.YML DESDE CERO (Sin fallos de sed)
+            # 2. CREAR DOCKER-COMPOSE.VPS.YML MAESTRO (Corregido)
             cat <<EOF > docker-compose.vps.yml
             services:
                 laravel.test:
                     build:
                         context: ./vendor/laravel/sail/runtimes/8.4
                         dockerfile: Dockerfile
+                        args:
+                            WWWGROUP: '1000'
                     image: sail-8.4/app
                     network_mode: "service:mysql"
                     environment:
@@ -81,14 +83,14 @@ jobs:
                     driver: local
             EOF
 
-            # 3. Limpiar todo rastro previo
+            # 3. Limpieza profunda
             docker compose -f docker-compose.yml down -v --remove-orphans || true
             docker compose -f docker-compose.vps.yml down -v --remove-orphans || true
             
-            # 4. Levantar con el nuevo archivo maestro
+            # 4. Levantar (Esta vez el build no fallará)
             docker compose -f docker-compose.vps.yml up -d --build
             
-            echo "Estructura unificada lista. Esperando DB (60s)..."
+            echo "Aguardando estabilidad de la colmena (60s)..."
             sleep 60
             
             docker exec backend-laravel.test-1 php artisan key:generate || true
