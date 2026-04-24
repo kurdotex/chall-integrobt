@@ -1,0 +1,35 @@
+# Dependency Directories
+node_modules/
+vendor/
+
+# Environment Files
+.env
+.env.backup
+.env.production
+backend/.env
+frontend/.env
+
+# MacOS / Windows artifacts
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Laravel specific
+backend/bootstrap/cache/*
+backend/storage/framework/cache/data/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/storage/logs/*
+backend/storage/*.key
+
+# Frontend specific
+frontend/dist/
+frontend/.vite/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
