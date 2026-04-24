@@ -9,24 +9,31 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: executing remote ssh commands using password
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Copy files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          source: "."
+          target: "/var/www/html/chall-integrobt"
+          rm: false
+
+      - name: executing remote ssh commands
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
-          port: 22
           script: |
-            mkdir -p /var/www/html/chall-integrobt
-            cd /var/www/html/chall-integrobt
-            if [ ! -d ".git" ]; then
-              git clone -b config-vps https://github.com/kurdotex/chall-integrobt.git .
-            else
-              git pull origin config-vps
+            cd /var/www/html/chall-integrobt/backend
+            if [ ! -f .env ]; then
+              cp .env.example .env
+              sed -i 's/DB_PASSWORD=root/DB_PASSWORD=Lumberjack123/g' .env
             fi
-            cd backend
-            cp .env.example .env
-            sed -i 's/DB_PASSWORD=root/DB_PASSWORD=Lumberjack123/g' .env
             docker compose up -d
-            docker exec backend-laravel.test-1 php artisan key:generate
+            docker exec backend-laravel.test-1 php artisan key:generate || true
             docker exec backend-laravel.test-1 php artisan migrate --seed
