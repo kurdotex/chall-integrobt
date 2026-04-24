@@ -9,6 +9,16 @@ El proyecto está diseñado siguiendo el principio de **Separation of Concerns (
 
 ---
 
+## 🚀 Despliegue Live
+
+El proyecto se encuentra desplegado y funcional para pruebas rápidas:
+*   **URL del Frontend:** [https://challintegrobt.netlify.app/](https://challintegrobt.netlify.app/)
+*   **Credenciales de Acceso (Usuario de Prueba):**
+    *   **Usuario:** `jose@example.com`
+    *   **Contraseña:** `Lumberjack`
+
+---
+
 ## Guía de Instalación (Docker-Ready)
 
 Esta guía asume que **Docker** y **Docker Compose** se encuentran instalados (En Windows, asegúrate de usar WSL2 para mejor rendimiento).
@@ -45,7 +55,7 @@ docker run -d --name challenge-ui -v ${PWD}:/app -w /app -p 5174:5174 node:20-al
 
 ## Documentación de API (Swagger)
 Una vez levantado el proyecto, puedes consultar la documentación interactiva en:
-👉 **[http://localhost:8080/api/documentation](http://localhost:8080/api/documentation)**
+👉 **[api/documentation](/api/documentation)**
 
 ---
 
