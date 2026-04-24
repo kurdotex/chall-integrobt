@@ -18,7 +18,10 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
-          source: "."
+          timeout: 60s
+          command_timeout: 30m
+          # Solo subimos el backend y archivos de configuración raíz
+          source: "backend/**,README.md,docker-compose.yml" 
           target: "/var/www/html/chall-integrobt"
           rm: false
 
@@ -28,29 +31,23 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
+          timeout: 60s
           script: |
             cd /var/www/html/chall-integrobt/backend
             
-            # Instalar dependencias
             docker run --rm -v $(pwd):/app -w /app composer install --ignore-platform-reqs --no-scripts
             
             if [ ! -f .env ]; then
               cp .env.example .env
             fi
 
-            # Asegurar que el puerto sea el 8080 incluso si falla el .env
             sed -i 's/\${APP_PORT:-80}:80/8080:80/g' docker-compose.yml
-            
-            # Credenciales básicas
             sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=Lumberjack123/' .env
             
-            # Limpiar rastro anterior
             docker compose down --remove-orphans || true
-            
-            # Levantar sistema
             docker compose up -d --build
             
-            sleep 25
+            sleep 30
             
             docker exec backend-laravel.test-1 php artisan key:generate || true
             docker exec backend-laravel.test-1 php artisan migrate --seed
