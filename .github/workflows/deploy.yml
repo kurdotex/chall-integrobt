@@ -41,19 +41,20 @@ jobs:
               cp .env.example .env
             fi
 
-            # Configuraciones críticas para Docker en VPS
+            # Configuraciones maestras para Docker en VPS
             sed -i 's/\${APP_PORT:-80}:80/8080:80/g' docker-compose.yml
             sed -i 's/^DB_HOST=.*/DB_HOST=mysql/' .env
             sed -i 's/^DB_PORT=.*/DB_PORT=3306/' .env
+            sed -i 's/^DB_DATABASE=.*/DB_DATABASE=challenge_integrobt/' .env
+            sed -i 's/^DB_USERNAME=.*/DB_USERNAME=root/' .env
             sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=Lumberjack123/' .env
             
-            # Limpiar y levantar
+            # Limpiar rastro y recrear (Remove orphans es clave)
             docker compose down --remove-orphans || true
             docker compose up -d --build
             
-            # Esperar a que MySQL esté saludable (Vital para las migraciones)
-            echo "Esperando a que MySQL despierte..."
-            sleep 40
+            echo "Esperando inicialización de MySQL (45s)..."
+            sleep 45
             
             docker exec backend-laravel.test-1 php artisan key:generate || true
-            docker exec backend-laravel.test-1 php artisan migrate --seed
+            docker exec backend-laravel.test-1 php artisan migrate:fresh --seed
