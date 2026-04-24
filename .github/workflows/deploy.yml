@@ -40,28 +40,28 @@ jobs:
               cp .env.example .env
             fi
 
-            # 1. Forzar puerto 8080 en App y 3307 en MySQL (Mapeo externo)
-            sed -i 's/\${APP_PORT:-80}:80/8080:80/g' docker-compose.yml
-            sed -i 's/\${FORWARD_DB_PORT:-33060}:3306/3307:3306/g' docker-compose.yml
-            
-            # 2. Configurar Laravel para conectar vía Gateway de Docker
-            # Esto evita depender del DNS interno que está fallando
-            sed -i 's/^DB_HOST=.*/DB_HOST=172.17.0.1/' .env
-            sed -i 's/^DB_PORT=.*/DB_PORT=3307/' .env
+            # 1. Configurar Laravel para hablar a su propio localhost
+            sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+            sed -i 's/^DB_PORT=.*/DB_PORT=3306/' .env
             sed -i 's/^DB_DATABASE=.*/DB_DATABASE=challenge_integrobt/' .env
             sed -i 's/^DB_USERNAME=.*/DB_USERNAME=root/' .env
             sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=Lumberjack123/' .env
             
-            # 3. Limpiar y refrescar
+            # 2. Hackear docker-compose: Laravel comparte red con MySQL
+            sed -i '/laravel.test:/a \        network_mode: "service:mysql"' docker-compose.yml
+            
+            # 3. Mapear puertos de la API (8080) en el contenedor de MySQL (que ahora es el host de red)
+            # Buscamos la sección de puertos de mysql y le inyectamos el 8080
+            sed -i '/mysql:/,/ports:/ s/ports:/ports:\n            - "8080:80"/' docker-compose.yml
+            
+            # 4. Limpiar y refrescar
             docker compose down -v --remove-orphans || true
             
-            # 4. Levantar
+            # 5. Levantar
             docker compose up -d --build
             
-            echo "Esperando a MySQL en el Bridge (60s)..."
+            echo "Conexión atómica establecida. Esperando estabilidad (60s)..."
             sleep 60
             
             docker exec backend-laravel.test-1 php artisan key:generate || true
-            
-            # 5. Ejecutar migración apuntando al host externo desde adentro
             docker exec backend-laravel.test-1 php artisan migrate:fresh --seed
