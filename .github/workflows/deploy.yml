@@ -49,12 +49,14 @@ jobs:
             sed -i 's/^DB_USERNAME=.*/DB_USERNAME=root/' .env
             sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=Lumberjack123/' .env
             
-            # Limpiar rastro y recrear (Remove orphans es clave)
-            docker compose down --remove-orphans || true
+            # ELIMINAR VOLUMENES VIEJOS (-v) para resetear la contraseña de MySQL
+            docker compose down -v --remove-orphans || true
+            
+            # Levantar de cero
             docker compose up -d --build
             
-            echo "Esperando inicialización de MySQL (45s)..."
-            sleep 45
+            echo "Inicializando base de datos limpia (50s)..."
+            sleep 50
             
             docker exec backend-laravel.test-1 php artisan key:generate || true
             docker exec backend-laravel.test-1 php artisan migrate:fresh --seed
