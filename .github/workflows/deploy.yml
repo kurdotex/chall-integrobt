@@ -38,9 +38,10 @@ jobs:
               cp .env.example .env
             fi
 
-            # Forzar actualización de puertos y credenciales siempre
-            sed -i 's/^APP_PORT=.*/APP_PORT=8080/' .env || echo "APP_PORT=8080" >> .env
-            sed -i 's/^FORWARD_DB_PORT=.*/FORWARD_DB_PORT=3307/' .env || echo "FORWARD_DB_PORT=3307" >> .env
+            # Asegurar que el puerto sea el 8080 incluso si falla el .env
+            sed -i 's/\${APP_PORT:-80}:80/8080:80/g' docker-compose.yml
+            
+            # Credenciales básicas
             sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=Lumberjack123/' .env
             
             # Limpiar rastro anterior
@@ -49,7 +50,7 @@ jobs:
             # Levantar sistema
             docker compose up -d --build
             
-            sleep 20
+            sleep 25
             
             docker exec backend-laravel.test-1 php artisan key:generate || true
             docker exec backend-laravel.test-1 php artisan migrate --seed
