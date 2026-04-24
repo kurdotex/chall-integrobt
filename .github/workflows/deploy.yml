@@ -3,7 +3,7 @@ name: Deploy Backend to VPS
 on:
   push:
     branches:
-      - master
+      - config-vps
 
 jobs:
   deploy:
@@ -20,9 +20,9 @@ jobs:
             mkdir -p /var/www/html/chall-integrobt
             cd /var/www/html/chall-integrobt
             if [ ! -d ".git" ]; then
-              git clone https://github.com/kurdotex/chall-integrobt.git .
+              git clone -b config-vps https://github.com/kurdotex/chall-integrobt.git .
             else
-              git pull origin master
+              git pull origin config-vps
             fi
             cd backend
             cp .env.example .env
