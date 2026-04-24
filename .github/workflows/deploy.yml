@@ -30,10 +30,19 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           script: |
             cd /var/www/html/chall-integrobt/backend
+            
+            # Instalar dependencias para que Sail tenga su contexto de construcción
+            docker run --rm -v $(pwd):/app -w /app composer install --ignore-platform-reqs --no-scripts
+            
             if [ ! -f .env ]; then
               cp .env.example .env
               sed -i 's/DB_PASSWORD=root/DB_PASSWORD=Lumberjack123/g' .env
             fi
-            docker compose up -d
+            
+            docker compose up -d --build
+            
+            # Esperar a que el contenedor esté listo
+            sleep 10
+            
             docker exec backend-laravel.test-1 php artisan key:generate || true
             docker exec backend-laravel.test-1 php artisan migrate --seed
