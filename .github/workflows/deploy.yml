@@ -20,7 +20,7 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           timeout: 60s
           command_timeout: 30m
-          source: "backend/**,README.md,docker-compose.yml" 
+          source: "backend/**,README.md" 
           target: "/var/www/html/chall-integrobt"
           rm: false
 
@@ -34,33 +34,61 @@ jobs:
           script: |
             cd /var/www/html/chall-integrobt/backend
             
+            # Instalar dependencias
             docker run --rm -v $(pwd):/app -w /app composer install --ignore-platform-reqs --no-scripts
             
             if [ ! -f .env ]; then
               cp .env.example .env
             fi
 
-            # 1. Configurar Laravel para hablar a su propio localhost
+            # 1. Configuración de .env Blindada
             sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env
             sed -i 's/^DB_PORT=.*/DB_PORT=3306/' .env
             sed -i 's/^DB_DATABASE=.*/DB_DATABASE=challenge_integrobt/' .env
             sed -i 's/^DB_USERNAME=.*/DB_USERNAME=root/' .env
             sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=Lumberjack123/' .env
             
-            # 2. Hackear docker-compose: Laravel comparte red con MySQL
-            sed -i '/laravel.test:/a \        network_mode: "service:mysql"' docker-compose.yml
+            # 2. CREAR DOCKER-COMPOSE.VPS.YML DESDE CERO (Sin fallos de sed)
+            cat <<EOF > docker-compose.vps.yml
+            services:
+                laravel.test:
+                    build:
+                        context: ./vendor/laravel/sail/runtimes/8.4
+                        dockerfile: Dockerfile
+                    image: sail-8.4/app
+                    network_mode: "service:mysql"
+                    environment:
+                        WWWUSER: '1000'
+                        LARAVEL_SAIL: 1
+                    volumes:
+                        - '.:/var/www/html'
+                    depends_on:
+                        - mysql
+                mysql:
+                    image: 'mysql/mysql-server:8.0'
+                    ports:
+                        - '8080:80'
+                        - '3307:3306'
+                    environment:
+                        MYSQL_ROOT_PASSWORD: 'Lumberjack123'
+                        MYSQL_ROOT_HOST: '%'
+                        MYSQL_DATABASE: 'challenge_integrobt'
+                        MYSQL_ALLOW_EMPTY_PASSWORD: 1
+                    volumes:
+                        - 'sail-mysql-vps:/var/lib/mysql'
+            volumes:
+                sail-mysql-vps:
+                    driver: local
+            EOF
+
+            # 3. Limpiar todo rastro previo
+            docker compose -f docker-compose.yml down -v --remove-orphans || true
+            docker compose -f docker-compose.vps.yml down -v --remove-orphans || true
             
-            # 3. Mapear puertos de la API (8080) en el contenedor de MySQL (que ahora es el host de red)
-            # Buscamos la sección de puertos de mysql y le inyectamos el 8080
-            sed -i '/mysql:/,/ports:/ s/ports:/ports:\n            - "8080:80"/' docker-compose.yml
+            # 4. Levantar con el nuevo archivo maestro
+            docker compose -f docker-compose.vps.yml up -d --build
             
-            # 4. Limpiar y refrescar
-            docker compose down -v --remove-orphans || true
-            
-            # 5. Levantar
-            docker compose up -d --build
-            
-            echo "Conexión atómica establecida. Esperando estabilidad (60s)..."
+            echo "Estructura unificada lista. Esperando DB (60s)..."
             sleep 60
             
             docker exec backend-laravel.test-1 php artisan key:generate || true
