@@ -51,7 +51,7 @@ jobs:
             sed -i 's/^DB_PORT=.*/DB_PORT=3306/' .env
             sed -i 's/^DB_DATABASE=.*/DB_DATABASE=challenge_integrobt/' .env
             sed -i 's/^DB_USERNAME=.*/DB_USERNAME=root/' .env
-            sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=Lumberjack123/' .env
+            sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=${{ secrets.DB_PASSWORD }}/' .env
             
             # Crear Compose Blindado
             cat <<EOF > docker-compose.vps.yml
@@ -77,7 +77,7 @@ jobs:
                         - '8080:80'
                         - '3307:3306'
                     environment:
-                        MYSQL_ROOT_PASSWORD: 'Lumberjack123'
+                        MYSQL_ROOT_PASSWORD: '${{ secrets.DB_PASSWORD }}'
                         MYSQL_ROOT_HOST: '%'
                         MYSQL_DATABASE: 'challenge_integrobt'
                         MYSQL_ALLOW_EMPTY_PASSWORD: 1
