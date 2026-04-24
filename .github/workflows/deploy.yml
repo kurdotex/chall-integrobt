@@ -34,14 +34,12 @@ jobs:
           script: |
             cd /var/www/html/chall-integrobt/backend
             
-            # Instalar dependencias
             docker run --rm -v $(pwd):/app -w /app composer install --ignore-platform-reqs --no-scripts
             
             if [ ! -f .env ]; then
               cp .env.example .env
             fi
 
-            # Configuraciones maestras para Docker en VPS
             sed -i 's/\${APP_PORT:-80}:80/8080:80/g' docker-compose.yml
             sed -i 's/^DB_HOST=.*/DB_HOST=mysql/' .env
             sed -i 's/^DB_PORT=.*/DB_PORT=3306/' .env
@@ -49,14 +47,17 @@ jobs:
             sed -i 's/^DB_USERNAME=.*/DB_USERNAME=root/' .env
             sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=Lumberjack123/' .env
             
-            # ELIMINAR VOLUMENES VIEJOS (-v) para resetear la contraseña de MySQL
+            # Limpieza profunda de Docker para evitar conflictos de red
             docker compose down -v --remove-orphans || true
+            docker network prune -f || true
             
-            # Levantar de cero
+            # Levantar sistema
             docker compose up -d --build
             
-            echo "Inicializando base de datos limpia (50s)..."
-            sleep 50
+            echo "Estabilizando red y base de datos (60s)..."
+            sleep 60
             
             docker exec backend-laravel.test-1 php artisan key:generate || true
-            docker exec backend-laravel.test-1 php artisan migrate:fresh --seed
+            
+            # Reintento de migración en caso de fallo de red temporal
+            docker exec backend-laravel.test-1 php artisan migrate:fresh --seed || (sleep 15 && docker exec backend-laravel.test-1 php artisan migrate:fresh --seed)
