@@ -34,21 +34,26 @@ jobs:
           script: |
             cd /var/www/html/chall-integrobt/backend
             
-            # Instalar dependencias para el contexto de build
+            # Asegurar estructura de carpetas de Laravel (vital para evitar el error de cache path)
+            mkdir -p storage/framework/{cache,sessions,views}
+            mkdir -p storage/logs
+            mkdir -p bootstrap/cache
+            chmod -R 777 storage bootstrap/cache
+            
+            # Instalar dependencias
             docker run --rm -v $(pwd):/app -w /app composer install --ignore-platform-reqs --no-scripts
             
             if [ ! -f .env ]; then
               cp .env.example .env
             fi
 
-            # 1. Configuración de .env Blindada
             sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env
             sed -i 's/^DB_PORT=.*/DB_PORT=3306/' .env
             sed -i 's/^DB_DATABASE=.*/DB_DATABASE=challenge_integrobt/' .env
             sed -i 's/^DB_USERNAME=.*/DB_USERNAME=root/' .env
             sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=Lumberjack123/' .env
             
-            # 2. CREAR DOCKER-COMPOSE.VPS.YML MAESTRO (Corregido)
+            # Crear Compose Blindado
             cat <<EOF > docker-compose.vps.yml
             services:
                 laravel.test:
@@ -83,15 +88,16 @@ jobs:
                     driver: local
             EOF
 
-            # 3. Limpieza profunda
             docker compose -f docker-compose.yml down -v --remove-orphans || true
             docker compose -f docker-compose.vps.yml down -v --remove-orphans || true
             
-            # 4. Levantar (Esta vez el build no fallará)
             docker compose -f docker-compose.vps.yml up -d --build
             
-            echo "Aguardando estabilidad de la colmena (60s)..."
+            echo "Ajustando permisos internos y despertando la API (60s)..."
             sleep 60
             
             docker exec backend-laravel.test-1 php artisan key:generate || true
             docker exec backend-laravel.test-1 php artisan migrate:fresh --seed
+            
+            # Permisos finales post-build
+            docker exec backend-laravel.test-1 chmod -R 777 storage bootstrap/cache
